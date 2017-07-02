@@ -194,14 +194,14 @@ fn parse_args(engine_options: &mut EngineOptions, args: Vec<String>) -> Option<S
             if let Some(s) = m.opt_str("datadir") {
                 match fs::canonicalize(PathBuf::from(s)) {
                     Ok(s) => {
-                        let mut temp = String::from(s.to_str().expect("Should not happen"));
-                        // remove UNC path prefix (Windows)
-                        if temp.starts_with("\\\\") {
-                            temp.drain(..2);
-                            let pos = temp.find("\\").unwrap() + 1;
-                            temp.drain(..pos);
+                        if s.starts_with("\\\\") {
+                            let mut iter = s.iter();
+                            let first = iter.next();
+                            println!("{:?}", first);
+                            engine_options.vanilla_data_dir = PathBuf::from(iter.as_path())
+                        } else {
+                            engine_options.vanilla_data_dir = PathBuf::from(s)
                         }
-                        engine_options.vanilla_data_dir = PathBuf::from(temp)
                     },
                     Err(_) => return Some(String::from("Please specify an existing datadir."))
                 };
@@ -658,14 +658,9 @@ mod tests {
         assert_eq!(super::parse_args(&mut engine_options, input), None);
         unsafe {
             let comp = str::from_utf8(CStr::from_ptr(super::get_vanilla_data_dir(&engine_options)).to_bytes()).unwrap();
-            let mut base = String();
+            let expected = fs::canonicalize(temp_dir.path()).unwrap();
 
-            // allow /private prefix on mac:
-            if comp.starts_with("/private") {
-                base.append("/private");
-            }
-            base.append(temp_dir.path().to_str().unwrap());
-            assert_eq!(comp, base);
+            assert_eq!(comp, expected.to_str().unwrap());
         }
     }
 
