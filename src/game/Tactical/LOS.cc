@@ -557,6 +557,7 @@ static BOOLEAN ResolveHitOnWall(STRUCTURE* pStructure, INT32 iGridNo, INT8 bLOSI
 	return( TRUE );
 }
 
+static UINT8 SoldierToSoldierChanceToGetThrough(SOLDIERTYPE* const pStartSoldier, const SOLDIERTYPE* const pEndSoldier);
 
 /*
  * The line of sight code is now used to simulate smelling through the air (for monsters);
@@ -651,6 +652,19 @@ static INT32 LineOfSightTest(GridNo start_pos, FLOAT dStartZ, GridNo end_pos, FL
 	FIXEDPT					qWallHeight;
 	BOOLEAN					fOpaque;
 	INT8						bSmoke = 0;
+	
+	// We get both targets to check if we have a chance to hit them with
+	// a gun. If there is no possible way to hit in head, torso or legs
+	// we consider the target as not visible
+	SOLDIERTYPE* const tgt = WhoIsThere2(start_pos, dStartZ > STANDING_HEIGHT);
+	SOLDIERTYPE* const tgt2 = WhoIsThere2(end_pos, dEndZ > STANDING_HEIGHT);
+	if (tgt2 != NULL && tgt != NULL)
+	{
+		if (SoldierToSoldierChanceToGetThrough(tgt, tgt2) == 0)
+		{
+			return( 0 );
+		}
+	}
 
 	if ( gTacticalStatus.uiFlags & DISALLOW_SIGHT )
 	{
